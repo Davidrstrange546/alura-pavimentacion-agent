@@ -103,13 +103,35 @@ pip install -r requirements.txt
    responde explícitamente que no posee esa información en la norma actual, en vez de
    inventar una respuesta.
 
-## Despliegue en OCI (preliminar)
+## Despliegue en OCI (Ubuntu, Compute "Always Free")
 
-Pendiente como paso posterior. Notas iniciales:
-- Migrar el bot de polling a webhook (requiere HTTPS público — certificado + dominio o
-  balanceador de OCI).
-- Empaquetar como servicio systemd o contenedor en una instancia Compute de OCI.
-- `chroma_db/` debe persistir en un volumen del compute (no se versiona en git).
+El bot se mantiene en **modo polling** en producción — no requiere HTTPS público, dominio
+ni abrir puertos entrantes en el Security List de OCI (más allá del SSH que ya usás para
+administrar la instancia). Se ejecuta como servicio `systemd`, con reinicio automático
+ante fallos y arranque en el boot.
+
+```bash
+# 1. Conectarse a la instancia
+ssh ubuntu@<IP_PUBLICA_DE_LA_INSTANCIA>
+
+# 2. Clonar el repo (el PDF ya viene incluido, no hace falta transferirlo aparte)
+git clone https://github.com/Davidrstrange546/alura-pavimentacion-agent.git
+cd alura-pavimentacion-agent
+
+# 3. Correr el script de despliegue (pide GEMINI_API_KEY y TELEGRAM_BOT_TOKEN
+#    de forma interactiva, nunca quedan en el historial de la shell)
+chmod +x deploy/setup_oci.sh
+./deploy/setup_oci.sh
+
+# 4. Verificar
+sudo systemctl status alura-bot
+sudo journalctl -u alura-bot -f
+```
+
+Para actualizar el bot más adelante (nuevos commits en GitHub), se vuelve a correr
+`./deploy/setup_oci.sh` desde la misma carpeta: hace `git pull`, reinstala dependencias
+si cambiaron, y reinicia el servicio. Ver `deploy/setup_oci.sh` y
+`deploy/alura-bot.service` para el detalle completo.
 
 ## Estructura del repositorio
 
@@ -119,6 +141,7 @@ Pendiente como paso posterior. Notas iniciales:
 - `bot.py` — interfaz de Telegram (polling).
 - `data/` — PDF fuente de la normativa.
 - `chroma_db/` — base vectorial persistente (gitignored, se genera con `ingest.py`).
+- `deploy/` — script de despliegue (`setup_oci.sh`) y unit file de systemd para OCI.
 
 ## Auto-evaluación del proyecto
 
@@ -136,5 +159,5 @@ Pendiente como paso posterior. Notas iniciales:
 | Manejo de errores en la conversación | ✅ Try/except en el handler, no crashea ante fallos puntuales |
 | Configuración vía variables de entorno, sin credenciales hardcodeadas | ✅ `.env` + `.env.example`, `.gitignore` verificado antes del primer commit |
 | Control de versiones con historial limpio | ✅ Repo en GitHub, working tree limpio |
-| Despliegue en OCI | ⏳ Pendiente — solo notas preliminares en este README |
-| Migración a webhook para producción | ⏳ Pendiente — actualmente corre en modo polling |
+| Despliegue en OCI (Ubuntu Always Free) | ✅ Script `deploy/setup_oci.sh` + servicio `systemd` con reinicio automático |
+| Migración a webhook para producción | ⏳ No implementada — decisión consciente: polling evita exponer puertos entrantes para este alcance |
