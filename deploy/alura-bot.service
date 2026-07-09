@@ -1,0 +1,15 @@
+[Unit]
+Description=Bot RAG Telegram - Normativa Pavimentacion MINVU
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__SERVICE_USER__
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=__INSTALL_DIR__/.venv/bin/python __INSTALL_DIR__/bot.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
