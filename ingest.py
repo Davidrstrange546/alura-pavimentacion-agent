@@ -23,6 +23,10 @@ def _extract_pages(pdf_path) -> list[tuple[int, str]]:
         for i, page in enumerate(pdf.pages, start=1):
             text = page.extract_text() or ""
             pages.append((i, text))
+            # pdfplumber cachea objetos de layout por pagina; sin liberarlos la
+            # memoria crece con cada pagina y en PDFs grandes (340 pags) puede
+            # agotar la RAM de una VM chica. page.close() libera esa cache.
+            page.close()
     return pages
 
 
